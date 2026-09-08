@@ -1,3 +1,4 @@
+from app.schemas import PostResponse
 from fastapi import FastAPI , HTTPException
 from app.schemas import PostCreate
 
@@ -33,10 +34,10 @@ def get_post_by_id(id:int):
         raise HTTPException(status_code=404 , detail="Post Not Found" )
     return text_posts[id]
 
-@app.post("/posts")
-def create_post(post:PostCreate):
-    new_post = {"title":post.title,"content":post.content}
-    text_posts[max(text_posts.keys())+1] = new_post
+@app.post("/posts") 
+def create_post(post:PostCreate) -> PostResponse: # which type will it return 
+    new_post = PostResponse(id=max(text_posts.keys())+1,title=post.title,content=post.content)
+    text_posts[new_post.id] = new_post
     return new_post 
 
 @app.delete("/posts/{id}")
