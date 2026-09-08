@@ -37,7 +37,7 @@ async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit
 # Function to initialize the database by creating all tables defined under Base
 async def create_tables():
     async with engine.begin() as conn:
-        await conn.run_sync(DeclarativeBase.metadata.create_all)
+        await conn.run_sync(Base.metadata.create_all)
 
 # FastAPI dependency to yield an async database session per request and ensure cleanup
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:

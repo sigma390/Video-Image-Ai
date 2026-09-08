@@ -1,8 +1,19 @@
 from app.schemas import PostResponse
 from fastapi import FastAPI , HTTPException
 from app.schemas import PostCreate
+from app.db import Post , create_tables , get_async_session
+# pyrefly: ignore [missing-import]
+from sqlalchemy.ext.asyncio import AsyncSession
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await create_tables()
+    yield
+
+
+
+app = FastAPI(lifespan=lifespan)
 
 text_posts = {
     1: {
