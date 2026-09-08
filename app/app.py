@@ -1,5 +1,5 @@
 from fastapi import FastAPI , HTTPException
-
+from app.schemas import PostCreate
 
 app = FastAPI()
 
@@ -20,12 +20,28 @@ text_posts = {
 
 
 @app.get("/posts")
-def get_posts():
-    return text_posts
+def get_posts(limit: int = None):
+    if limit is not None and limit <= len(list(text_posts)):
+        return dict(list(text_posts.items())[:limit]) #need to return a DIcut 
+    else:
+        return text_posts
 
 
 @app.get("/posts/{id}")
 def get_post_by_id(id:int):
     if id not in text_posts:
-        return HTTPException(status_code=404 , detail="Post Not Found" )
+        raise HTTPException(status_code=404 , detail="Post Not Found" )
     return text_posts[id]
+
+@app.post("/posts")
+def create_post(post:PostCreate):
+    new_post = {"title":post.title,"content":post.content}
+    text_posts[max(text_posts.keys())+1] = new_post
+    return new_post 
+
+@app.delete("/posts/{id}")
+def delet_post(id:int):
+    if id not in text_posts:
+        raise HTTPException(status_code=404 , detail="Post Not Found" )
+    text_posts.pop(id)
+    return {"message":f"The Post with id {id} has been deleted successfully"}
