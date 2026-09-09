@@ -147,3 +147,15 @@ async def delete_user_by_id(user_id: str, session:AsyncSession = Depends(get_asy
     await session.delete(user)
     await session.commit()
     return {"message": "User deleted successfully"}    
+
+
+@app.post("/login")
+async def login(email: str = Form(...), password: str = Form(...), session : AsyncSession = Depends(get_async_session)):
+    result = await session.execute(select(User).where(User.email == email))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=404,detail="User Not Found")
+    if user.password != password:
+        raise HTTPException(status_code=401,detail="Invalid Password")
+    
+    return {"message": "Login Successful"}
