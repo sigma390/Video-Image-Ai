@@ -132,6 +132,7 @@ async def get_all_users(session:AsyncSession = Depends(get_async_session)):
             "id": str(user.id),
             "username": user.username,
             "email": user.email,
+            "password":user.password,
             "created_at": user.created_at
         })
     return users
