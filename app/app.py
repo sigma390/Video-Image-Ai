@@ -1,3 +1,4 @@
+from app.db import User
 import uuid
 import os
 import asyncio
@@ -94,3 +95,55 @@ async def delete_post(
     await session.delete(post)
     await session.commit()
     return {"message": "Post deleted successfully"}  # success message  
+
+
+
+@app.post('/users/register')
+async def register_user(
+    username: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    session: AsyncSession = Depends(get_async_session)
+):
+    result = await session.execute(select(User).where(User.email == email))  # find user by email
+    user = result.scalars().first()                                           # get user
+    if user:
+        raise HTTPException(status_code = 403, detail = "User already exists")
+
+    new_user = User(
+        username = username,
+        email = email,
+        password = password
+    )
+    session.add(new_user)
+    await session.commit()
+    await session.refresh(new_user)
+    return {"id": str(new_user.id), "username": new_user.username, "email": new_user.email, "created_at": new_user.created_at}
+
+
+
+@app.get("/users")
+async def get_all_users(session:AsyncSession = Depends(get_async_session)):
+    result = await session.execute(select(User))  # query all users
+    users_list = result.scalars().all()           # get user list
+    users = []
+    for user in users_list:
+        users.append({
+            "id": str(user.id),
+            "username": user.username,
+            "email": user.email,
+            "created_at": user.created_at
+        })
+    return users
+    
+
+
+@app.delete("/users/{user_id}")
+async def delete_user_by_id(user_id: str, session:AsyncSession = Depends(get_async_session)):
+    result = await session.execute(select(User).where(User.id == uuid.UUID(user_id)))  # find user
+    user = result.scalars().first()                                                     # get user
+    if not user:
+        raise HTTPException(status_code = 404, detail = "User not found")
+    await session.delete(user)
+    await session.commit()
+    return {"message": "User deleted successfully"}    

@@ -14,6 +14,21 @@ DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 class Base(DeclarativeBase):
     pass
 
+
+
+# Database Model for Users
+class User(Base):
+    __tablename__ = "users"  # Name of the table in the database
+
+    # Primary key UUID, automatically generated if not provided
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    username = Column(String, nullable=False)  # unique username
+    email = Column(String, nullable=False)     # user email address
+    password = Column(String, nullable=False)  # hashed password
+    # Timestamp when the user is created (UTC)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    posts = relationship("Post", back_populates="user")  # user's posts
+
 # Database Model for Posts
 class Post(Base):
     __tablename__ = "posts"  # Name of the table in the database
@@ -26,6 +41,9 @@ class Post(Base):
     file_name = Column(String, nullable=False)
     # Timestamp when the post is created (UTC)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    user = relationship("User", back_populates="posts")
+
 
 # Create the async engine that handles connections to the database
 engine = create_async_engine(DATABASE_URL)
