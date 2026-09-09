@@ -1,4 +1,6 @@
+import uuid
 import os
+import asyncio
 import tempfile
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, File, Form, UploadFile, Depends  # fastapi tools
@@ -76,3 +78,19 @@ async def get_feed(
             "created_at": post.created_at
         })
     return post_data
+
+
+@app.delete("/posts/{post_id}")
+async def delete_post(
+    post_id: str,                  # post id to delete
+    session: AsyncSession = Depends(get_async_session)  # db session
+):
+    post_idd = uuid.UUID(post_id);
+    result = await session.execute(select(Post).where(Post.id == post_idd)) #find post
+    post = result.scalars().first() #get post
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found") # 404 error
+   
+    await session.delete(post)
+    await session.commit()
+    return {"message": "Post deleted successfully"}  # success message  
