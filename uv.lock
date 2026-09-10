@@ -307,6 +307,8 @@ dependencies = [
     { name = "fastapi" },
     { name = "fastapi-users", extra = ["sqlalchemy"] },
     { name = "imagekitio" },
+    { name = "pwdlib", extra = ["bcrypt"] },
+    { name = "pyjwt", extra = ["crypto"] },
     { name = "python-dotenv" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -317,6 +319,8 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.136.3" },
     { name = "fastapi-users", extras = ["sqlalchemy"], specifier = ">=15.0.5" },
     { name = "imagekitio", specifier = ">=5.5.2" },
+    { name = "pwdlib", extras = ["bcrypt"], specifier = ">=0.3.0" },
+    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.13.0" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.48.0" },
 ]
