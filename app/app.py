@@ -6,10 +6,10 @@ import tempfile
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, File, Form, UploadFile, Depends  # fastapi tools
 from app.db import Post, create_tables, get_async_session                    # db models & session
-from sqlalchemy import select         
-import UserCreate, UserLogin                                        # sql query builder
+from sqlalchemy import select                                                # sql query builder
 # pyrefly: ignore [missing-import]
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.schemas import UserCreate, UserLogin, UserResponse
 
 from app.images import imagekit
 
@@ -99,65 +99,57 @@ async def delete_post(
 
 
 
-@app.post('/users/register') 
+@app.post('/users/register', response_model=UserResponse) 
 async def register_user(
-    username: str = Form(...),
-    email: str = Form(...),
-    password: str = Form(...),
+    user_data: UserCreate,
     session: AsyncSession = Depends(get_async_session)
 ):
-    result = await session.execute(select(User).where(User.email == email))  # find user by email
-    user = result.scalars().first()                                           # get user
+    result = await session.execute(select(User).where(User.email == user_data.email))  # find user by email
+    user = result.scalars().first()                                                     # get user
     if user:
-        raise HTTPException(status_code = 403, detail = "User already exists")
+        raise HTTPException(status_code=403, detail="User already exists")
 
     new_user = User(
-        username = username,
-        email = email,
-        password = password
+        username=user_data.username,
+        email=user_data.email,
+        password=user_data.password
     )
     session.add(new_user)
     await session.commit()
     await session.refresh(new_user)
-    return {"id": str(new_user.id), "username": new_user.username, "email": new_user.email, "created_at": new_user.created_at}
+    return new_user
 
 
 
-@app.get("/users")
-async def get_all_users(session:AsyncSession = Depends(get_async_session)):
+@app.get("/users", response_model=list[UserResponse])
+async def get_all_users(session: AsyncSession = Depends(get_async_session)):
     result = await session.execute(select(User))  # query all users
     users_list = result.scalars().all()           # get user list
-    users = []
-    for user in users_list:
-        users.append({
-            "id": str(user.id),
-            "username": user.username,
-            "email": user.email,
-            "password":user.password,
-            "created_at": user.created_at
-        })
-    return users
+    return users_list
     
 
 
 @app.delete("/users/{user_id}")
-async def delete_user_by_id(user_id: str, session:AsyncSession = Depends(get_async_session)):
+async def delete_user_by_id(user_id: str, session: AsyncSession = Depends(get_async_session)):
     result = await session.execute(select(User).where(User.id == uuid.UUID(user_id)))  # find user
     user = result.scalars().first()                                                     # get user
     if not user:
-        raise HTTPException(status_code = 404, detail = "User not found")
+        raise HTTPException(status_code=404, detail="User not found")
     await session.delete(user)
     await session.commit()
     return {"message": "User deleted successfully"}    
 
 
 @app.post("/login") 
-async def login(email: str = Form(...), password: str = Form(...), session : AsyncSession = Depends(get_async_session)):
-    result = await session.execute(select(User).where(User.email == email))
+async def login(
+    user_data: UserLogin,
+    session: AsyncSession = Depends(get_async_session)
+):
+    result = await session.execute(select(User).where(User.email == user_data.email))
     user = result.scalars().first()
     if not user:
-        raise HTTPException(status_code=404,detail="User Not Found")
-    if user.password != password:
-        raise HTTPException(status_code=401,detail="Invalid Password")
+        raise HTTPException(status_code=404, detail="User Not Found")
+    if user.password != user_data.password:
+        raise HTTPException(status_code=401, detail="Invalid Password")
     
     return {"message": "Login Successful"}
