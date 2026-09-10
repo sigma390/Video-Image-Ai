@@ -1,19 +1,10 @@
-from app.auth import get_current_user, hash_password, verify_password, create_access_token
-from app.db import User, Post, create_tables, get_async_session
+from app.db import Post, create_tables, get_async_session
 import uuid
-import os
-import asyncio
-import tempfile
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, File, Form, UploadFile, Depends
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy import select
-# pyrefly: ignore [missing-import]
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.schemas import UserCreate, UserLogin, UserResponse, Token
-from app.images import imagekit
-from app.router import image
-
+from app.router import image, user, auth
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,6 +13,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)  # init app
 
+app.include_router(auth.router)
+app.include_router(user.router)
 app.include_router(image.router)
 
 
@@ -36,7 +29,7 @@ async def get_feed(
         post_data.append({
             "id": str(post.id),
             "caption": post.caption,
-            "user_id":post.user_id,
+            "user_id": post.user_id,
             "file_name": post.file_name,
             "file_type": post.file_type,
             "url": post.url,
@@ -50,65 +43,12 @@ async def delete_post(
     post_id: str,                  # post id to delete
     session: AsyncSession = Depends(get_async_session)  # db session
 ):
-    post_idd = uuid.UUID(post_id);
-    result = await session.execute(select(Post).where(Post.id == post_idd)) #find post
-    post = result.scalars().first() #get post
+    post_idd = uuid.UUID(post_id)
+    result = await session.execute(select(Post).where(Post.id == post_idd))  # find post
+    post = result.scalars().first()  # get post
     if not post:
-        raise HTTPException(status_code=404, detail="Post not found") # 404 error
-   
+        raise HTTPException(status_code=404, detail="Post not found")  # 404 error
+
     await session.delete(post)
     await session.commit()
-    return {"message": "Post deleted successfully"}  # success message  
-
-
-
-@app.post('/users/register', response_model=UserResponse) 
-async def register_user(
-    user_data: UserCreate,
-    session: AsyncSession = Depends(get_async_session)
-):
-    result = await session.execute(select(User).where(User.email == user_data.email))  # find user by email
-    user = result.scalars().first()                                                     # get user
-    if user:
-        raise HTTPException(status_code=403, detail="User already exists")
-
-    new_user = User(
-        username=user_data.username,
-        email=user_data.email,
-        password=hash_password(user_data.password)
-    )
-    session.add(new_user)
-    await session.commit()
-    await session.refresh(new_user)
-    return new_user
-
-
-
-
-
-
-
-@app.delete("/users/{user_id}")
-async def delete_user_by_id(user_id: str, session: AsyncSession = Depends(get_async_session)):
-    result = await session.execute(select(User).where(User.id == uuid.UUID(user_id)))  # find user
-    user = result.scalars().first()                                                     # get user
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    await session.delete(user)
-    await session.commit()
-    return {"message": "User deleted successfully"}    
-
-
-@app.post("/login", response_model=Token) 
-async def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    session: AsyncSession = Depends(get_async_session)
-):
-    result = await session.execute(select(User).where(User.email == form_data.username))
-    user = result.scalars().first()
-    if not user or not verify_password(form_data.password, user.password):
-        raise HTTPException(status_code=401, detail="Invalid Email or Password")
-    
-    # Subject ('sub') matches what get_current_user expects (UUID string)
-    token = create_access_token(data={"sub": str(user.id)})
-    return {"access_token": token, "token_type": "bearer"}
+    return {"message": "Post deleted successfully"}  # success message

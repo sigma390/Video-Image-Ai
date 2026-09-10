@@ -43,7 +43,7 @@ def create_access_token(data:dict):
 
 
 #dependancy Extract and validate 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 
