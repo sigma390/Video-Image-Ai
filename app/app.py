@@ -1,3 +1,4 @@
+from app.auth import verify_password
 from app.db import User
 import uuid
 import os
@@ -10,7 +11,7 @@ from sqlalchemy import select                                                # s
 # pyrefly: ignore [missing-import]
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas import UserCreate, UserLogin, UserResponse
-
+from app.auth import hash_password ,create_access_token
 from app.images import imagekit
 
 
@@ -112,7 +113,7 @@ async def register_user(
     new_user = User(
         username=user_data.username,
         email=user_data.email,
-        password=user_data.password
+        password=hash_password(user_data.password)
     )
     session.add(new_user)
     await session.commit()
@@ -147,9 +148,10 @@ async def login(
 ):
     result = await session.execute(select(User).where(User.email == user_data.email))
     user = result.scalars().first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User Not Found")
-    if user.password != user_data.password:
-        raise HTTPException(status_code=401, detail="Invalid Password")
+    if not user or not verify_password(user_data.password, user.password):
+
+        raise HTTPException(status_code=401, detail="Invalid Email or Password")
     
-    return {"message": "Login Successful"}
+     # Subject ('sub') matches what get_current_user expects (UUID string)
+    token = create_access_token(data={"sub": str(user.id)})
+    return {"access_token":token, "message": "Login Successful"}
