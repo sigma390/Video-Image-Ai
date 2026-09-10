@@ -6,7 +6,8 @@ import tempfile
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, File, Form, UploadFile, Depends  # fastapi tools
 from app.db import Post, create_tables, get_async_session                    # db models & session
-from sqlalchemy import select                                                # sql query builder
+from sqlalchemy import select         
+import UserCreate, UserLogin                                        # sql query builder
 # pyrefly: ignore [missing-import]
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -98,7 +99,7 @@ async def delete_post(
 
 
 
-@app.post('/users/register')
+@app.post('/users/register') 
 async def register_user(
     username: str = Form(...),
     email: str = Form(...),
@@ -150,7 +151,7 @@ async def delete_user_by_id(user_id: str, session:AsyncSession = Depends(get_asy
     return {"message": "User deleted successfully"}    
 
 
-@app.post("/login")
+@app.post("/login") 
 async def login(email: str = Form(...), password: str = Form(...), session : AsyncSession = Depends(get_async_session)):
     result = await session.execute(select(User).where(User.email == email))
     user = result.scalars().first()
