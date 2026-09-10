@@ -1,17 +1,16 @@
-from app.auth import verify_password
-from app.db import User
+from app.auth import get_current_user, hash_password, verify_password, create_access_token
+from app.db import User, Post, create_tables, get_async_session
 import uuid
 import os
 import asyncio
 import tempfile
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, File, Form, UploadFile, Depends  # fastapi tools
-from app.db import Post, create_tables, get_async_session                    # db models & session
-from sqlalchemy import select                                                # sql query builder
+from fastapi import FastAPI, HTTPException, File, Form, UploadFile, Depends
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import select
 # pyrefly: ignore [missing-import]
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.schemas import UserCreate, UserLogin, UserResponse
-from app.auth import hash_password ,create_access_token
+from app.schemas import UserCreate, UserLogin, UserResponse, Token
 from app.images import imagekit
 
 
@@ -25,7 +24,8 @@ app = FastAPI(lifespan=lifespan)  # init app
 @app.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),                       # upload file
-    caption: str = Form(""),                            # post caption
+    caption: str = Form(""),    
+    current_user : User = Depends(get_current_user),                        # post caption
     session: AsyncSession = Depends(get_async_session)  # db session
 ):
     temp_file_path = None
@@ -49,10 +49,13 @@ async def upload_file(
                 tags=["backend-upload"]
             )
 
+        
+
         post = Post(
             caption=caption,
             url=upload_result.url,
             file_type=upload_result.file_type,
+            user_id= current_user.id,
             file_name=upload_result.name,
         )
         session.add(post)            # add post
@@ -75,6 +78,7 @@ async def get_feed(
         post_data.append({
             "id": str(post.id),
             "caption": post.caption,
+            "user_id":post.user_id,
             "file_name": post.file_name,
             "file_type": post.file_type,
             "url": post.url,
@@ -141,17 +145,16 @@ async def delete_user_by_id(user_id: str, session: AsyncSession = Depends(get_as
     return {"message": "User deleted successfully"}    
 
 
-@app.post("/login") 
+@app.post("/login", response_model=Token) 
 async def login(
-    user_data: UserLogin,
+    form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_async_session)
 ):
-    result = await session.execute(select(User).where(User.email == user_data.email))
+    result = await session.execute(select(User).where(User.email == form_data.username))
     user = result.scalars().first()
-    if not user or not verify_password(user_data.password, user.password):
-
+    if not user or not verify_password(form_data.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid Email or Password")
     
-     # Subject ('sub') matches what get_current_user expects (UUID string)
+    # Subject ('sub') matches what get_current_user expects (UUID string)
     token = create_access_token(data={"sub": str(user.id)})
-    return {"access_token":token, "message": "Login Successful"}
+    return {"access_token": token, "token_type": "bearer"}
