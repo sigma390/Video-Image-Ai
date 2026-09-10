@@ -84,12 +84,8 @@ async def register_user(
 
 
 
-@app.get("/users", response_model=list[UserResponse])
-async def get_all_users(session: AsyncSession = Depends(get_async_session)):
-    result = await session.execute(select(User))  # query all users
-    users_list = result.scalars().all()           # get user list
-    return users_list
-    
+
+
 
 
 @app.delete("/users/{user_id}")
