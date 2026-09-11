@@ -25,6 +25,7 @@ class User(Base):
     username = Column(String, nullable=False)  # unique username
     email = Column(String, nullable=False)     # user email address
     password = Column(String, nullable=False)  # hashed password
+    role = Column(String, nullable=False, default="user")
     # Timestamp when the user is created (UTC)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     posts = relationship("Post", back_populates="user")  # user's posts

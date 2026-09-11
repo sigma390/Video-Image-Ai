@@ -1,3 +1,4 @@
+from typing import Literal
 from pydantic import BaseModel, EmailStr
 from uuid import UUID
 from datetime import datetime
@@ -11,6 +12,7 @@ from datetime import datetime
 class UserCreate(BaseModel):
     username:str
     email:EmailStr
+    role: Literal["user", "admin"] = "user"
     password:str
 
 
