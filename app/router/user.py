@@ -19,8 +19,8 @@ async def get_all_users(session: AsyncSession = Depends(get_async_session)) -> l
     users_list = result.scalars().all()           # get user list
     return users_list
 
-@router.delete("/{user_id}")
-async def delete_user_by_id(user_id: str, session: AsyncSession = Depends(get_async_session), admin=Depends(require_admin)):
+@router.delete("/delete/{user_id}")
+async def delete_user_by_id(user_id: str, session: AsyncSession = Depends(get_async_session), _admin=Depends(require_admin)):
     result = await session.execute(select(User).where(User.id == uuid.UUID(user_id)))  # find user
     user = result.scalars().first()                                                     # get user
     if not user:

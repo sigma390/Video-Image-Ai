@@ -10,10 +10,9 @@ from datetime import datetime
 
 
 class UserCreate(BaseModel):
-    username:str
-    email:EmailStr
-    role: Literal["user", "admin"] = "user"
-    password:str
+    username: str
+    email: EmailStr
+    password: str
 
 
 #Schema for returning user Details
@@ -22,6 +21,7 @@ class UserResponse(BaseModel):
     id: UUID
     email: str
     username: str
+    role: str = "user"
     created_at: datetime
 
     class Config:
