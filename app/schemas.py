@@ -1,3 +1,5 @@
+from pydantic import field_validator
+from dataclasses import field
 from typing import Literal
 from pydantic import BaseModel, EmailStr
 from uuid import UUID
@@ -10,9 +12,17 @@ from datetime import datetime
 
 
 class UserCreate(BaseModel):
-    username: str
-    email: EmailStr
+    username: str # could have used username: str = Field(min_length=3)    email: EmailStr
     password: str
+
+
+    #Custom validator 
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, value):
+        if " " in value:
+            raise ValueError("Username cannot contain spaces")
+        return value.strip()
 
 
 #Schema for returning user Details
