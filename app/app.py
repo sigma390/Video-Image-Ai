@@ -1,17 +1,32 @@
 from app.db import Post, create_tables, get_async_session
 import uuid
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.router import image, user, auth
-
+import time
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await create_tables()  # create tables on startup
     yield
 
 app = FastAPI(lifespan=lifespan)  # init app
+
+
+#middleware for logging 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.perf_counter() #starts the counter
+    print(f"Incoming request: {request.method} {request.url.path}") 
+    response = await call_next(request)
+    process_time = time.perf_counter() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+    print(
+        f"Completed: {response.status_code} "
+        f"in {process_time:.4f} seconds"
+    )
+    return response
 
 app.include_router(auth.router)
 app.include_router(user.router)
