@@ -1,7 +1,7 @@
 from app.db import Post, create_tables, get_async_session
 import uuid
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request , Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.router import image, user, auth
@@ -35,9 +35,16 @@ app.include_router(image.router)
 
 @app.get("/feed")
 async def get_feed(
+    page : int = Query(1, ge=1),
+    limit: int = Query(10, gw=1, le=100),
     session: AsyncSession = Depends(get_async_session)  # db session
 ):
-    result = await session.execute(select(Post))  # query all posts
+    offset = (page - 1)* limit
+    result = await session.execute(
+        select(Post).order_by(Post.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )  # query all posts
     posts = result.scalars().all()                # get post list
     post_data = []
     for post in posts:
