@@ -1,4 +1,4 @@
-from app.db import Post, create_tables, get_async_session
+from app.db import Post, User, create_tables, get_async_session
 import uuid
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends, Request , Query
@@ -36,12 +36,18 @@ app.include_router(image.router)
 @app.get("/feed")
 async def get_feed(
     page : int = Query(1, ge=1),
-    limit: int = Query(10, gw=1, le=100),
+    limit: int = Query(10, ge=1, le=100),
+    username: str | None = Query(default=None),
     session: AsyncSession = Depends(get_async_session)  # db session
 ):
     offset = (page - 1)* limit
+    query  = select(Post)
+
+    if username :
+        query = query.join(Post.user).where(User.username == username)
+        
     result = await session.execute(
-        select(Post).order_by(Post.created_at.desc())
+        query.order_by(Post.created_at.desc())
         .offset(offset)
         .limit(limit)
     )  # query all posts
